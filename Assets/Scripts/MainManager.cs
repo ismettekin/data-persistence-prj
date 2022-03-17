@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 public class MainManager : MonoBehaviour
 {
     public Brick BrickPrefab;
@@ -11,7 +13,9 @@ public class MainManager : MonoBehaviour
     public Rigidbody Ball;
 
     public Text ScoreText;
-    public GameObject GameOverText;
+    public Text HighScoreText;
+    public GameObject EndTitle;
+    
     
     private bool m_Started = false;
     private int m_Points;
@@ -22,6 +26,12 @@ public class MainManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        if(DataManager.Instance != null)
+        {
+            DataManager.Instance.LoadHighScore();
+            HighScoreText.text = $"Best Score: {DataManager.Instance.highScore} - {DataManager.Instance.highScorePlayerName}";
+        }
+
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -34,6 +44,7 @@ public class MainManager : MonoBehaviour
                 var brick = Instantiate(BrickPrefab, position, Quaternion.identity);
                 brick.PointValue = pointCountArray[i];
                 brick.onDestroyed.AddListener(AddPoint);
+                
             }
         }
     }
@@ -62,7 +73,7 @@ public class MainManager : MonoBehaviour
         }
     }
 
-    void AddPoint(int point)
+    public void AddPoint(int point)
     {
         m_Points += point;
         ScoreText.text = $"Score : {m_Points}";
@@ -70,7 +81,28 @@ public class MainManager : MonoBehaviour
 
     public void GameOver()
     {
+        if(DataManager.Instance != null)
+        {
+            if(DataManager.Instance.highScore < m_Points)
+            {
+                DataManager.Instance.highScore = m_Points;
+                DataManager.Instance.highScorePlayerName = DataManager.Instance.c_playerName;
+
+                DataManager.Instance.SaveHighScore();
+            }
+        }
         m_GameOver = true;
-        GameOverText.SetActive(true);
+        EndTitle.SetActive(true);
     }
+
+    public void QuitGame()
+    {
+        
+#if UNITY_EDITOR
+        EditorApplication.ExitPlaymode();
+#else
+        Application.Quit();
+#endif
+    }
+
 }
